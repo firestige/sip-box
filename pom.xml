@@ -10,6 +10,8 @@
   <modules>
     <module>sip-sample</module>
     <module>sip-netty</module>
+    <module>csp-test</module>
+    <module>log-test</module>
   </modules>
   <packaging>pom</packaging>
 
