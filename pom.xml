@@ -12,6 +12,7 @@
     <module>sip-netty</module>
     <module>csp-test</module>
     <module>log-test</module>
+    <module>netty-sample</module>
   </modules>
   <packaging>pom</packaging>
 
