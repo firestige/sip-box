@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static io.netty.util.internal.ObjectUtil.checkNonEmptyAfterTrim;
+
 /**
  * Sip协议版本
  *
@@ -45,7 +47,7 @@ public class SipVersion implements Comparable<SipVersion> {
 
     public SipVersion(String text) {
         ObjectUtil.checkNotNull(text, "text");
-        text = text.trim().toUpperCase(Locale.ROOT);
+        text = checkNonEmptyAfterTrim(text, "text").toUpperCase(Locale.ROOT);
         if (text.isEmpty()) {
             throw new IllegalArgumentException("empty text");
         } else {
@@ -68,7 +70,7 @@ public class SipVersion implements Comparable<SipVersion> {
 
     private SipVersion(String protocolName, int majorVersion, int minorVersion, boolean bytes) {
         ObjectUtil.checkNotNull(protocolName, "protocolName");
-        protocolName = protocolName.trim().toLowerCase(Locale.ROOT);
+        protocolName = checkNonEmptyAfterTrim(protocolName, "protocolName").toUpperCase(Locale.ROOT);
         if (protocolName.isEmpty()) {
             throw new IllegalArgumentException("empty protocolName");
         } else {

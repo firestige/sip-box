@@ -40,7 +40,7 @@ public class SipResponseDecoder extends SipObjectDecoder {
     }
 
     @Override
-    protected SipMessage createMessage(String[] initialLine, InetSocketAddress address) throws Exception {
+    protected SipMessage createMessage(String[] initialLine) throws Exception {
         return new DefaultSipResponse(
                 SipVersion.valueOf(initialLine[0]),
                 SipResponseStatus.parseLine(initialLine[1]+ " " + initialLine[2]),
@@ -48,7 +48,7 @@ public class SipResponseDecoder extends SipObjectDecoder {
     }
 
     @Override
-    protected SipMessage createInvalidMessage(InetSocketAddress address) {
+    protected SipMessage createInvalidMessage() {
         return new DefaultSipResponse(SipVersion.SIP_2_0, UNKNOWN_STATUS, validateHeaders);
     }
 }

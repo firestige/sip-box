@@ -3,8 +3,8 @@ package io.netty.handler.codec.sip;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.socket.DatagramPacket;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.DecoderResult;
-import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.ByteProcessor;
 import io.netty.util.internal.AppendableCharSequence;
@@ -134,7 +134,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositive;
  * @version [version], 2021-08-16
  * @since [version]
  */
-public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramPacket> {
+public abstract class SipObjectDecoder extends ByteToMessageDecoder {
     // pre-setting
     public static final int DEFAULT_MAX_INITIAL_LINE_LENGTH = 256;
     public static final int DEFAULT_MAX_HEADER_SIZE = 3072;
@@ -231,23 +231,19 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
     }
 
     @Override
-    protected void decode(ChannelHandlerContext ctx, DatagramPacket msg, List<Object> out) throws Exception {
-        decode0(ctx, msg.content(), out, msg.recipient());
-    }
-
-    protected void decode0(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out, InetSocketAddress address) throws Exception {
-        if (resetRequested) {
+    protected void decode(ChannelHandlerContext ctx, ByteBuf buf, List<Object> out) throws Exception {
+       if (resetRequested) {
             resetNow();
         }
         boolean next;
-        if (currentState == State.READ_INITIAL) {
-            next = readInitial(buf, out, address);
+        if (currentState == State.READ_INITIAL || currentState == State.SKIP_CONTROL_CHARS) {
+            next = readInitial(buf, out);
             if (!next) {
                 return;
             }
         }
         if (currentState == State.READ_HEADER) {
-            next = readHeader(buf, out, address);
+            next = readHeader(buf, out);
             if (!next) {
                 return;
             }
@@ -261,7 +257,7 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
         }
     }
 
-    private boolean readInitial(ByteBuf buf, List<Object> out, InetSocketAddress address) {
+    private boolean readInitial(ByteBuf buf, List<Object> out) {
         boolean ret = false;
         try {
             // 解析首行
@@ -276,16 +272,16 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
                 return ret;
             }
             // 创建对象
-            message = createMessage(initialLine, address);
+            message = createMessage(initialLine);
             currentState = State.READ_HEADER;
             ret = true;
         } catch (Exception e) {
-            out.add(invalidMessage(buf, e, address));
+            out.add(invalidMessage(buf, e));
         }
         return ret;
     }
 
-    private boolean readHeader(ByteBuf buf, List<Object> out, InetSocketAddress address) {
+    private boolean readHeader(ByteBuf buf, List<Object> out) {
         boolean ret = false;
         try {
             State nextState = parseHeaders(buf);
@@ -313,7 +309,7 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
             chunkSize = contentLength;
             ret = true;
         } catch (Exception e) {
-            out.add(invalidMessage(buf, e, address));
+            out.add(invalidMessage(buf, e));
         }
         return ret;
     }
@@ -425,11 +421,11 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
         return contentLength;
     }
 
-    private SipMessage invalidMessage(ByteBuf buf, Exception e, InetSocketAddress address) {
+    private SipMessage invalidMessage(ByteBuf buf, Exception e) {
         currentState = State.BAD_MESSAGE;
         buf.skipBytes(buf.readableBytes());
         if (message == null) {
-            message = createInvalidMessage(address);
+            message = createInvalidMessage();
         }
         message.setDecoderResult(DecoderResult.failure(e));
         SipMessage ret = message;
@@ -438,8 +434,8 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
     }
 
     protected abstract boolean isDecodingRequest();
-    protected abstract SipMessage createMessage(String[] initialLine, InetSocketAddress address) throws Exception;
-    protected abstract SipMessage createInvalidMessage(InetSocketAddress address);
+    protected abstract SipMessage createMessage(String[] initialLine) throws Exception;
+    protected abstract SipMessage createInvalidMessage();
 
     /**
      * 切分首行
@@ -634,7 +630,7 @@ public abstract class SipObjectDecoder extends MessageToMessageDecoder<DatagramP
 
         @Override
         public AppendableCharSequence parse(ByteBuf buffer) {
-            reset();
+            super.reset();
             return super.parse(buffer);
         }
 

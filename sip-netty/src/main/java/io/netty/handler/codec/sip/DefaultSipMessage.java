@@ -13,7 +13,6 @@ public abstract class DefaultSipMessage extends DefaultSipObject implements SipM
     private static final int HASH_CODE_PRIME = 31;
     private SipVersion version;
     private final SipHeaders headers;
-    private InetSocketAddress recipient;
 
     protected DefaultSipMessage(final SipVersion version) {
         this(version, true, false);
@@ -43,17 +42,6 @@ public abstract class DefaultSipMessage extends DefaultSipObject implements SipM
     @Override
     public SipMessage setProtocolVersion(SipVersion version) {
         this.version = ObjectUtil.checkNotNull(version, "version");
-        return this;
-    }
-
-    @Override
-    public InetSocketAddress recipient() {
-        return recipient;
-    }
-
-    @Override
-    public SipMessage setRecipient(InetSocketAddress address) {
-        this.recipient = address;
         return this;
     }
 

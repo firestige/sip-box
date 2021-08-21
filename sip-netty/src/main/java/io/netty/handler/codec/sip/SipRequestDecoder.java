@@ -1,7 +1,5 @@
 package io.netty.handler.codec.sip;
 
-import java.net.InetSocketAddress;
-
 /**
  * @author firestige
  * @version [version], 2021-08-16
@@ -42,7 +40,7 @@ public class SipRequestDecoder extends SipObjectDecoder {
     }
 
     @Override
-    protected SipMessage createMessage(String[] initialLine, InetSocketAddress address) throws Exception {
+    protected SipMessage createMessage(String[] initialLine) throws Exception {
         return new DefaultSipRequest(
                 SipVersion.valueOf(initialLine[2]),
                 SipMethod.valueOf(initialLine[0]),
@@ -51,7 +49,7 @@ public class SipRequestDecoder extends SipObjectDecoder {
     }
 
     @Override
-    protected SipMessage createInvalidMessage(InetSocketAddress address) {
+    protected SipMessage createInvalidMessage() {
         return new DefaultSipRequest(
                 SipVersion.SIP_2_0,
                 SipMethod.INFO,

@@ -10,7 +10,6 @@ import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.util.Optional;
 
 import static io.netty.handler.codec.sip.SipHeaderNames.CONTENT_LENGTH;
