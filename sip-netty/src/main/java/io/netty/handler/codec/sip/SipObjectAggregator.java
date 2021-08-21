@@ -5,13 +5,12 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.DecoderResult;
-import io.netty.handler.codec.Headers;
 import io.netty.handler.codec.MessageAggregator;
+import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.util.Optional;
 
 import static io.netty.handler.codec.sip.SipHeaderNames.CONTENT_LENGTH;
@@ -32,39 +31,32 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
         TOO_LARGE.headers().set(CONTENT_LENGTH, 0);
     }
 
-    private final boolean closeOnExpectationFailed;
-
     public SipObjectAggregator(int maxContentLength) {
-        this(maxContentLength, false);
-    }
-
-    public SipObjectAggregator(int maxContentLength, boolean closeOnExpectationFailed) {
         super(maxContentLength);
-        this.closeOnExpectationFailed = closeOnExpectationFailed;
     }
 
     @Override
-    protected boolean isStartMessage(SipObject msg) throws Exception {
+    protected boolean isStartMessage(SipObject msg) {
         return msg instanceof SipMessage;
     }
 
     @Override
-    protected boolean isContentMessage(SipObject msg) throws Exception {
+    protected boolean isContentMessage(SipObject msg) {
         return msg instanceof SipContent;
     }
 
     @Override
-    protected boolean isLastContentMessage(SipContent msg) throws Exception {
+    protected boolean isLastContentMessage(SipContent msg) {
         return msg instanceof LastSipContent;
     }
 
     @Override
-    protected boolean isAggregated(SipObject msg) throws Exception {
+    protected boolean isAggregated(SipObject msg) {
         return msg instanceof FullSipMessage;
     }
 
     @Override
-    protected boolean isContentLengthInvalid(SipMessage start, int maxContentLength) throws Exception {
+    protected boolean isContentLengthInvalid(SipMessage start, int maxContentLength) {
         try{
             return getContentLength(start, -1) > maxContentLength;
         } catch (final NumberFormatException e) {
@@ -72,72 +64,101 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
         }
     }
 
+    /**
+     * SIP消息没有CONTINUE，不需要实现这个方法，只要返回{@code null}即可
+     */
     @Override
-    protected Object newContinueResponse(SipMessage start, int maxContentLength, ChannelPipeline pipeline) throws Exception {
+    protected Object newContinueResponse(SipMessage start, int maxContentLength, ChannelPipeline pipeline) {
         return null;
     }
 
+    /**
+     * SIP消息没有CONTINUE，不需要实现这个方法，只要返回{@code false}即可
+     */
     @Override
     protected boolean closeAfterContinueResponse(Object msg) throws Exception {
-        return closeOnExpectationFailed && ignoreContentAfterContinueResponse(msg);
+        return false;
     }
 
+    /**
+     * SIP消息没有CONTINUE，不需要实现这个方法，只要返回{@code false}即可
+     */
     @Override
     protected boolean ignoreContentAfterContinueResponse(Object msg) throws Exception {
         return false;
     }
 
+    /**
+     * 开始拼接消息
+     *
+     * @param start 起始消息，一般这代表着包含消息头的第一个消息
+     * @param content 消息内容
+     * @return 完整的Sip消息
+     */
     @Override
-    protected FullSipMessage beginAggregation(SipMessage start, ByteBuf content) throws Exception {
-        return null;
+    protected FullSipMessage beginAggregation(SipMessage start, ByteBuf content) {
+        assert !(start instanceof FullSipMessage);
+
+        AggregatedFullSipMessage ret;
+        if (start instanceof SipRequest) {
+            ret = new AggregatedFullSipRequest((SipRequest) start, content, null);
+        } else if (start instanceof SipResponse) {
+            ret = new AggregatedFullSipResponse((SipResponse) start, content, null);
+        } else {
+            throw new Error();
+        }
+        return ret;
     }
 
     @Override
-    protected void aggregate(FullSipMessage aggregated, SipContent content) throws Exception {
-        super.aggregate(aggregated, content);
+    protected void aggregate(FullSipMessage aggregated, SipContent content) {
+        if (content instanceof LastSipContent) {
+            ((AggregatedFullSipMessage) aggregated).setTrailingHeaders(((LastSipContent) content).trailingHeaders());
+        }
     }
 
     @Override
     protected void finishAggregation(FullSipMessage aggregated) throws Exception {
-        super.finishAggregation(aggregated);
+        if (!SipUtil.isContentLengthSet(aggregated)) {
+            aggregated.headers().set(CONTENT_LENGTH, String.valueOf(aggregated.content().readableBytes()));
+        }
     }
 
     @Override
     protected void handleOversizedMessage(ChannelHandlerContext ctx, SipMessage oversized) throws Exception {
-        super.handleOversizedMessage(ctx, oversized);
+        if (oversized instanceof SipRequest) {
+            ctx.writeAndFlush(TOO_LARGE.retainedDuplicate()).addListener(future -> {
+                if (!future.isSuccess()) {
+                    LOGGER.debug("Failed to send a 413 Request Entity Too Large.", future.cause());
+                    ctx.close();
+                }
+            });
+        } else if (oversized instanceof SipResponse) {
+            ctx.close();
+            throw new TooLongFrameException("Response entity too large: " + oversized);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     private abstract static class AggregatedFullSipMessage implements FullSipMessage {
         protected final SipMessage message;
         private final ByteBuf content;
-        private SipHeaders headers;
-        private InetSocketAddress recipient;
+        private SipHeaders trailingHeaders;
 
-        AggregatedFullSipMessage(SipMessage message, ByteBuf content, SipHeaders headers) {
+        AggregatedFullSipMessage(SipMessage message, ByteBuf content, SipHeaders trailingHeaders) {
             this.message = message;
             this.content = content;
-            this.headers = headers;
-            this.recipient = message.recipient();
-        }
-
-        @Override
-        public InetSocketAddress recipient() {
-            return recipient;
-        }
-
-        @Override
-        public SipMessage setRecipient(InetSocketAddress address) {
-            this.recipient = recipient;
-            return this;
+            this.trailingHeaders = trailingHeaders;
         }
 
         @Override
         public SipHeaders trailingHeaders() {
-            return Optional.ofNullable(headers).orElse(EmptySipHeaders.INSTANCE);
+            return Optional.ofNullable(trailingHeaders).orElse(EmptySipHeaders.INSTANCE);
         }
 
-        void setTrailingHeaders(SipHeaders headers) {
-            this.headers = headers;
+        void setTrailingHeaders(SipHeaders trailingHeaders) {
+            this.trailingHeaders = trailingHeaders;
         }
 
         @Override
@@ -210,14 +231,6 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
             return content.release(decrement);
         }
 
-        @Override
-        public abstract FullSipMessage copy();
-
-        @Override
-        public abstract FullSipMessage duplicate();
-
-        @Override
-        public abstract FullSipMessage retainedDuplicate();
     }
 
     private static final class AggregatedFullSipRequest extends AggregatedFullSipMessage implements FullSipRequest {
@@ -313,8 +326,8 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
     }
 
     private static final class AggregatedFullSipResponse extends AggregatedFullSipMessage implements FullSipResponse {
-        AggregatedFullSipResponse(SipResponse response, ByteBuf content) {
-            super(response, content, null);
+        AggregatedFullSipResponse(SipResponse response, ByteBuf content, SipHeaders trailingHeaders) {
+            super(response, content, trailingHeaders);
         }
 
         @Override
