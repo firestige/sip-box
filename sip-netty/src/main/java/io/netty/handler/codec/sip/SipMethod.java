@@ -96,20 +96,20 @@ public class SipMethod implements Comparable<SipMethod> {
 
     static {
         methodMap = new EnumNameMap<>(
-                new EnumNameMap.Node<>(REGISTER.toString(), REGISTER),
-                new EnumNameMap.Node<>(INVITE.toString(), INVITE),
-                new EnumNameMap.Node<>(ACK.toString(), ACK),
-                new EnumNameMap.Node<>(BYE.toString(), BYE),
-                new EnumNameMap.Node<>(CANCEL.toString(), CANCEL),
-                new EnumNameMap.Node<>(UPDATE.toString(), UPDATE),
-                new EnumNameMap.Node<>(REFER.toString(), REFER),
-                new EnumNameMap.Node<>(PRACK.toString(), PRACK),
-                new EnumNameMap.Node<>(SUBSCRIBE.toString(), SUBSCRIBE),
-                new EnumNameMap.Node<>(NOTIFY.toString(), NOTIFY),
-                new EnumNameMap.Node<>(PUBLISH.toString(), PUBLISH),
-                new EnumNameMap.Node<>(MESSAGE.toString(), MESSAGE),
-                new EnumNameMap.Node<>(INFO.toString(), INFO),
-                new EnumNameMap.Node<>(OPTIONS.toString(), OPTIONS)
+                new EnumNameMap.Node<>("REGISTER", REGISTER),
+                new EnumNameMap.Node<>("INVITE", INVITE),
+                new EnumNameMap.Node<>("ACK", ACK),
+                new EnumNameMap.Node<>("BYE", BYE),
+                new EnumNameMap.Node<>("CANCEL", CANCEL),
+                new EnumNameMap.Node<>("UPDATE", UPDATE),
+                new EnumNameMap.Node<>("REFER", REFER),
+                new EnumNameMap.Node<>("PRACK", PRACK),
+                new EnumNameMap.Node<>("SUBSCRIBE", SUBSCRIBE),
+                new EnumNameMap.Node<>("NOTIFY", NOTIFY),
+                new EnumNameMap.Node<>("PUBLISH", PUBLISH),
+                new EnumNameMap.Node<>("MESSAGE", MESSAGE),
+                new EnumNameMap.Node<>("INFO", INFO),
+                new EnumNameMap.Node<>("OPTIONS", OPTIONS)
         );
     }
 
@@ -174,10 +174,12 @@ public class SipMethod implements Comparable<SipMethod> {
         private final int valuesMask;
 
         EnumNameMap(EnumNameMap.Node<T>... nodes) {
-            values = (EnumNameMap.Node<T>[]) new EnumNameMap.Node[findNextPositivePowerOfTwo(nodes.length)];
+            values = (EnumNameMap.Node<T>[]) new EnumNameMap.Node[128];
             valuesMask = values.length - 1;
+            //System.out.println(valuesMask);
             for (SipMethod.EnumNameMap.Node<T> node : nodes) {
                 int i = hashCode(node.key) & valuesMask;
+                //System.out.println("key: " + node.key + ", hashcode: " + hashCode(node.key) + ", index: " + i);
                 if (values[i] != null) {
                     throw new IllegalArgumentException("index " + i + " collision between values: [" +
                             values[i].key + ", " + node.key + ']');

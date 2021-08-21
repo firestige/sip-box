@@ -14,7 +14,7 @@ import io.netty.util.CharsetUtil;
 public class SipClientHandler extends SimpleChannelInboundHandler<ByteBuf> {
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        ctx.writeAndFlush(Unpooled.copiedBuffer("INVITE 127.0.0.1@firestige SIP/2.0\r\n\r\n", CharsetUtil.UTF_8));
+        ctx.writeAndFlush(Unpooled.copiedBuffer("INVITE 127.0.0.1@firestige SIP/2.0\r\n", CharsetUtil.UTF_8));
     }
 
     @Override

@@ -6,6 +6,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.codec.sip.SipMessage;
 import io.netty.util.CharsetUtil;
 
 /**
@@ -17,8 +18,9 @@ import io.netty.util.CharsetUtil;
 public class SipServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf in = (ByteBuf) msg;
-        System.out.println("receive: " + in.toString(CharsetUtil.UTF_8));
+        System.out.println("call handler");
+        SipMessage in = (SipMessage) msg;
+        System.out.println("receive: " + in.toString());
         ctx.write(in);
     }
 

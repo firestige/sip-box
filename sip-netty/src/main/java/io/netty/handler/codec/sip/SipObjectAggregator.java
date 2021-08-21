@@ -314,7 +314,7 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
 
     private static final class AggregatedFullSipResponse extends AggregatedFullSipMessage implements FullSipResponse {
         AggregatedFullSipResponse(SipResponse response, ByteBuf content) {
-            super(response, content);
+            super(response, content, null);
         }
 
         @Override
@@ -334,7 +334,8 @@ public class SipObjectAggregator extends MessageAggregator<SipObject, SipMessage
 
         @Override
         public FullSipResponse replace(ByteBuf content) {
-            DefaultFullSipResponse dup = new DefaultFullSipResponse(protocolVersion(), status(), content, headers().copy())
+            DefaultFullSipResponse dup = new DefaultFullSipResponse(protocolVersion(), status(), content,
+                    headers().copy(), headers().copy());
             dup.setDecoderResult(decoderResult());
             return dup;
         }

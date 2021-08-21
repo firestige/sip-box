@@ -1,7 +1,6 @@
 package io.firestigeiris.sipbox;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -33,7 +32,7 @@ public class SipServer {
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(handler);
+                            ch.pipeline().addLast(new SipDecoder()).addLast(handler);
                         }
                     });
             bootstrap.bind().sync().channel().closeFuture().sync();
