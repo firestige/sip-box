@@ -48,6 +48,19 @@ public class SipCodecTest {
             + "User-Agent: SYSZUX28181" + CRLF
             + "Content-Length: " + REQUEST_CONTENT_BYTES.length + CRLF + CRLF).getBytes();
 
+    private static final byte[] REQUEST_HEADER_BYTES_2 = (""
+            +"MESSAGE sip:34020000002610027030@192.168.1.10:6626;transport=UDP SIP/2.0" + CRLF
+            + "Via: SIP/2.0/UDP 172.17.0.2:57030;branch=z9hG4bK-524287-1---4119157c627d9600;rport" + CRLF
+            + "Max-Forwards: 70" + CRLF
+            + "To: <sip:34020000002610027030@3402000000>" + CRLF
+            + "From: <sip:34020000002000000001@3402000000>;tag=36c7c40c" + CRLF
+            + "Call-ID: MF5dxttskwkTEISUAkpb2Qsa" + CRLF
+            + "CSeq: 3 MESSAGE" + CRLF
+            + "Allow: REGISTER, INVITE, MESSAGE, ACK, BYE, CANCEL, INFO, SUBSCRIBE, NOTIFY" + CRLF
+            + "Content-Type: Application/MANSCDP+xml" + CRLF
+            + "User-Agent: SYSZUX28181" + CRLF
+            + "Content-Length: " + REQUEST_CONTENT_BYTES.length + CRLF + CRLF).getBytes();
+
     private static final SipRequest MESSAGE_REQUEST = new DefaultFullSipRequest(SipVersion.SIP_2_0, SipMethod.MESSAGE
             , "sip:34020000002610027030@192.168.1.10:6626;transport=UDP");
 
@@ -59,12 +72,18 @@ public class SipCodecTest {
                     new SipRequestDecoder(),
                     new SipObjectAggregator(6000));
             assertTrue(channel.writeInbound(Unpooled.wrappedBuffer(REQUEST_HEADER_BYTES, REQUEST_CONTENT_BYTES)));
+            assertTrue(channel.writeInbound(Unpooled.copiedBuffer(REQUEST_HEADER_BYTES_2)));
+            assertTrue(channel.writeInbound(Unpooled.copiedBuffer(REQUEST_CONTENT_BYTES)));
             assertTrue(channel.finish());
 
             SipMessage message = channel.readInbound();
             assertNotNull(message);
             assertTrue(message instanceof FullSipRequest);
             assertEquals("2 MESSAGE", message.headers().get(SipHeaderNames.CSEQ));
+            SipMessage message2 = channel.readInbound();
+            assertNotNull(message2);
+            assertTrue(message2 instanceof FullSipRequest);
+            assertEquals("3 MESSAGE", message2.headers().get(SipHeaderNames.CSEQ));
         }
     }
 
@@ -76,7 +95,8 @@ public class SipCodecTest {
                     new SipRequestEncoder());
             ByteBuf content = Unpooled.copiedBuffer(REQUEST_CONTENT_BYTES);
             DefaultFullSipRequest request = new DefaultFullSipRequest(MESSAGE_REQUEST.protocolVersion(),
-                    MESSAGE_REQUEST.method(), MESSAGE_REQUEST.uri(), content);
+                    MESSAGE_REQUEST.method(), MESSAGE_REQUEST.uri());
+            request.content().writeBytes(content);
             request.headers()
                     .set(SipHeaderNames.FROM, "<sip:34020000002000000001@3402000000>;tag=36c7c40c")
                     .set(SipHeaderNames.TO, "<sip:34020000002610027030@3402000000>")
@@ -89,10 +109,18 @@ public class SipCodecTest {
             assertTrue(channel.writeOutbound(request));
             assertTrue(channel.finish());
 
-            Object buf = channel.readOutbound();
+            // 由于给buff设置的初始大小只有256，所以这里的request被拆分到两个ip包中，第一个是header，第二个是content，
+            // 需要注意，第二个ip包需要向channel再次获取出栈数据，才能拿到content
+            //System.out.println(request.content().toString(CharsetUtil.UTF_8));
+            ByteBuf buf = channel.readOutbound();
             assertNotNull(buf);
-            assertTrue(buf instanceof ByteBuf);
-            System.out.println(((ByteBuf) buf).toString(CharsetUtil.UTF_8));
+            System.out.println(buf.toString(CharsetUtil.US_ASCII));
+            ByteBuf buf1 = channel.readOutbound();
+            assertNotNull(buf1);
+            System.out.println(buf1.toString(CharsetUtil.US_ASCII));
+//            assertEquals(Unpooled.wrappedBuffer(REQUEST_HEADER_BYTES, REQUEST_CONTENT_BYTES).readableBytes(),
+//                    ((ByteBuf) buf).readableBytes());
+
         }
     }
 }
