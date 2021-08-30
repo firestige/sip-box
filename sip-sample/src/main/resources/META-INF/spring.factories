@@ -1,1 +1,0 @@
-#org.springframework.context.ApplicationListener=io.firestigeiris.sipbox.listener.LogInitialListener, io.firestigeiris.sipbox.listener.CspInitialListener

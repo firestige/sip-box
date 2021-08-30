@@ -13,6 +13,7 @@
     <module>csp-test</module>
     <module>log-test</module>
     <module>netty-sample</module>
+    <module>gw-sample</module>
   </modules>
   <packaging>pom</packaging>
 
@@ -22,10 +23,35 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!--maven start-->
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
+    <!--life cycle-->
+    <maven.plugin.clean.version>3.1.0</maven.plugin.clean.version>
+    <maven.plugin.compiler.version>3.8.1</maven.plugin.compiler.version>
+    <maven.plugin.deploy.version>3.0.0-M1</maven.plugin.deploy.version>
+    <maven.plugin.failsafe.version>3.0.0-M5</maven.plugin.failsafe.version>
+    <maven.plugin.install.version>3.0.0-M1</maven.plugin.install.version>
+    <maven.plugin.resources.version>	3.2.0</maven.plugin.resources.version>
+    <maven.plugin.site.version>	3.9.1</maven.plugin.site.version>
+    <maven.plugin.surefire.version>3.0.0-M5</maven.plugin.surefire.version>
+    <maven.plugin.verifier.version>1.1</maven.plugin.verifier.version>
+    <!--packing-->
+    <maven.plugin.jar.version>3.2.0</maven.plugin.jar.version>
+    <maven.plugin.shade.version>3.2.4</maven.plugin.shade.version>
+    <maven.plugin.source.version>3.2.1</maven.plugin.source.version>
+    <!--report-->
+    <maven.plugin.javadoc.version>3.3.0</maven.plugin.javadoc.version>
+    <maven.plugin.surefire-report.version>3.0.0-M5</maven.plugin.surefire-report.version>
+    <!--tools-->
+    <maven.plugin.artifact.version>3.1.0</maven.plugin.artifact.version>
+    <maven.plugin.assembly.version>3.3.0</maven.plugin.assembly.version>
+    <maven.plugin.dependency.version>3.2.0</maven.plugin.dependency.version>
+    <!--maven end-->
     <junit-bom.version>5.7.2</junit-bom.version>
-    <spring-boot.version>2.5.3</spring-boot.version>
+    <spring-boot.version>2.5.4</spring-boot.version>
+    <guava.version>30.1.1-jre</guava.version>
+    <jacoco.version>0.8.7</jacoco.version>
   </properties>
 
   <dependencyManagement>
@@ -44,6 +70,11 @@
         <scope>import</scope>
         <type>pom</type>
       </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -53,33 +84,82 @@
         <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>${maven.plugin.clean.version}</version>
         </plugin>
         <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
         <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
+          <version>${maven.plugin.compiler.version}</version>
         </plugin>
         <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.0.0-M5</version>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>${maven.plugin.deploy.version}</version>
         </plugin>
         <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>3.2.0</version>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${maven.plugin.failsafe.version}</version>
         </plugin>
         <plugin>
           <artifactId>maven-install-plugin</artifactId>
-          <version>3.0.0-M1</version>
+          <version>${maven.plugin.install.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>${maven.plugin.resources.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>${maven.plugin.site.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>${maven.plugin.surefire.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-verifier-plugin</artifactId>
+          <version>${maven.plugin.verifier.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven.plugin.jar.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>${maven.plugin.shade.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${maven.plugin.source.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven.plugin.javadoc.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-report-plugin</artifactId>
+          <version>${maven.plugin.surefire-report.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-artifact-plugin</artifactId>
+          <version>${maven.plugin.artifact.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${maven.plugin.assembly.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>${maven.plugin.dependency.version}</version>
         </plugin>
         <plugin>
           <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven</artifactId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${spring-boot.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>
